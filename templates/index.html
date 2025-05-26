@@ -1,0 +1,730 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatchPro - ATS Resume Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
+            color: #1e293b;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #3b82f6, #2dd4bf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            animation: fadeInUp 1s ease-out;
+            border: 1px solid rgba(30, 41, 59, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-box {
+            border: 2px dashed rgba(30, 41, 59, 0.2);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.5);
+            position: relative;
+        }
+
+        .upload-box:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .upload-box.dragover {
+            border-color: #2dd4bf;
+            background: rgba(45, 212, 191, 0.1);
+            transform: scale(1.02);
+        }
+
+        .file-info {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+            color: #3b82f6;
+            font-weight: 500;
+        }
+
+        .job-description {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(30, 41, 59, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            color: #1e293b;
+            margin-bottom: 1rem;
+            resize: vertical;
+            min-height: 150px;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .job-description:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            outline: none;
+            background: #ffffff;
+        }
+
+        .job-description::placeholder {
+            color: #94a3b8;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(45deg, #3b82f6, #2dd4bf);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(0);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        .analyze-btn.loading .loading-spinner {
+            display: block;
+        }
+
+        .analyze-btn.loading .btn-text {
+            opacity: 0;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .results.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            animation: fadeInUp 1s ease-out;
+            border: 1px solid rgba(30, 41, 59, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-title {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .progress-ring {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: relative;
+            background: conic-gradient(#3b82f6 var(--progress, 0deg), #e2e8f0 0deg);
+            transition: all 1.5s ease-out;
+        }
+
+        .progress-ring::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border-radius: 50%;
+            background: #ffffff;
+        }
+
+        .progress-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e293b;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            min-height: 40px;
+        }
+
+        .keyword {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(45, 212, 191, 0.1));
+            color: #3b82f6;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            animation: slideIn 0.3s ease-out forwards;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+
+        .keyword.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .keyword:hover {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(45, 212, 191, 0.2));
+            transform: translateY(-2px);
+        }
+
+        .skill-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            padding: 1rem 0;
+        }
+
+        .skill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .skill-name {
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .skill-percentage {
+            font-weight: bold;
+            color: #3b82f6;
+        }
+
+        .skill-bar {
+            background: rgba(30, 41, 59, 0.1);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .skill-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #2dd4bf);
+            border-radius: 4px;
+            position: relative;
+            width: 0%;
+            transition: width 1.5s ease-out;
+        }
+
+        .skill-progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 20px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            display: none;
+        }
+
+        .analysis-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem 0;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            color: #3b82f6;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #64748b;
+            font-style: italic;
+            padding: 2rem;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MatchPro</h1>
+            <p>AI-Powered Resume Analysis & Job Matching</p>
+            <p>dDeveloped by HarshaVardhan</p>
+        </header>
+
+        <div class="upload-section">
+            <form id="analysis-form">
+                <input type="file" id="resume-upload" name="resume" accept=".pdf" required>
+                <div class="upload-box" id="upload-box">
+                    <h3>Upload Your Resume</h3>
+                    <p>Drag & drop your PDF resume or click to browse</p>
+                    <div id="file-info" class="file-info" style="display: none;"></div>
+                </div>
+                <textarea 
+                    class="job-description" 
+                    id="job-description" 
+                    name="job_description" 
+                    placeholder="Paste the job description here..."
+                    required
+                ></textarea>
+                <button type="submit" class="analyze-btn" id="analyze-btn">
+                    <span class="btn-text">Analyze Resume</span>
+                    <div class="loading-spinner"></div>
+                </button>
+            </form>
+            <div id="error-message" class="error-message"></div>
+        </div>
+
+        <div class="results" id="results-section">
+            <div class="metric-card">
+                <h3 class="metric-title">ATS Match Score</h3>
+                <div class="progress-ring" id="progress-ring">
+                    <div class="progress-value" id="progress-value">0%</div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <h3 class="metric-title">Missing Keywords</h3>
+                <div class="keywords" id="missing-keywords">
+                    <div class="no-data">No analysis performed yet</div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <h3 class="metric-title">Key Skills Match</h3>
+                <div class="skill-bars" id="skill-bars">
+                    <div class="no-data">No analysis performed yet</div>
+                </div>
+            </div>
+
+            <div class="metric-card">
+                <h3 class="metric-title">Analysis Stats</h3>
+                <div id="analysis-stats" class="analysis-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Resume Keywords:</span>
+                        <span class="stat-value" id="resume-keywords-count">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Job Keywords:</span>
+                        <span class="stat-value" id="job-keywords-count">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Matched:</span>
+                        <span class="stat-value" id="matched-keywords-count">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let selectedFile = null;
+        const uploadBox = document.getElementById('upload-box');
+        const fileInput = document.getElementById('resume-upload');
+        const fileInfo = document.getElementById('file-info');
+        const form = document.getElementById('analysis-form');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const errorMessage = document.getElementById('error-message');
+        const resultsSection = document.getElementById('results-section');
+
+        // File upload handling
+        uploadBox.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop functionality
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.classList.add('dragover');
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('dragover');
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'application/pdf') {
+                    fileInput.files = files;
+                    handleFileSelect({ target: { files: [file] } });
+                } else {
+                    showError('Please upload a PDF file only.');
+                }
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                fileInfo.textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
+                fileInfo.style.display = 'block';
+                hideError();
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!selectedFile) {
+                showError('Please select a resume file.');
+                return;
+            }
+
+            const jobDescription = document.getElementById('job-description').value.trim();
+            if (!jobDescription) {
+                showError('Please enter a job description.');
+                return;
+            }
+
+            setLoading(true);
+            hideError();
+
+            try {
+                const formData = new FormData();
+                formData.append('resume', selectedFile);
+                formData.append('job_description', jobDescription);
+
+                // Call Flask API
+                const response = await callFlaskApi(formData);
+                
+                if (response.error) {
+                    throw new Error(response.error);
+                }
+
+                displayResults(response);
+            } catch (error) {
+                showError(`Analysis failed: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Call Flask API for resume analysis
+        async function callFlaskApi(formData) {
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        }
+
+        function displayResults(data) {
+            // Update ATS Match Score
+            updateProgressRing(data.ats_match_score);
+            
+            // Update Missing Keywords
+            updateMissingKeywords(data.missing_keywords);
+            
+            // Update Skills Match
+            updateSkillsMatch(data.key_skills_match);
+            
+            // Update Analysis Stats
+            updateAnalysisStats(data);
+            
+            // Show results section
+            resultsSection.classList.add('show');
+            
+            // Scroll to results
+            setTimeout(() => {
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+        }
+
+        function updateAnalysisStats(data) {
+            document.getElementById('resume-keywords-count').textContent = data.total_resume_keywords || 0;
+            document.getElementById('job-keywords-count').textContent = data.total_job_keywords || 0;
+            document.getElementById('matched-keywords-count').textContent = data.matched_keywords || 0;
+        }
+
+        function updateProgressRing(score) {
+            const progressRing = document.getElementById('progress-ring');
+            const progressValue = document.getElementById('progress-value');
+            
+            // Calculate progress (360 degrees = 100%)
+            const progressDegrees = (score / 100) * 360;
+            
+            setTimeout(() => {
+                progressRing.style.setProperty('--progress', `${progressDegrees}deg`);
+                progressValue.textContent = `${score}%`;
+            }, 300);
+        }
+
+        function updateMissingKeywords(keywords) {
+            const container = document.getElementById('missing-keywords');
+            container.innerHTML = '';
+            
+            if (keywords.length === 0) {
+                container.innerHTML = '<div class="no-data">Great! No missing keywords found.</div>';
+                return;
+            }
+            
+            keywords.forEach((keyword, index) => {
+                const keywordEl = document.createElement('span');
+                keywordEl.className = 'keyword';
+                keywordEl.textContent = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+                
+                setTimeout(() => {
+                    keywordEl.classList.add('show');
+                }, index * 100);
+                
+                container.appendChild(keywordEl);
+            });
+        }
+
+        function updateSkillsMatch(skills) {
+            const container = document.getElementById('skill-bars');
+            container.innerHTML = '';
+            
+            if (!skills || skills.length === 0) {
+                container.innerHTML = '<div class="no-data">No skill data available.</div>';
+                return;
+            }
+            
+            skills.forEach((skill, index) => {
+                const skillContainer = document.createElement('div');
+                skillContainer.innerHTML = `
+                    <div class="skill-item">
+                        <span class="skill-name">${skill.name}</span>
+                        <span class="skill-percentage">${skill.score}%</span>
+                    </div>
+                    <div class="skill-bar">
+                        <div class="skill-progress"></div>
+                    </div>
+                `;
+                
+                container.appendChild(skillContainer);
+                
+                // Animate skill bar
+                const progressBar = skillContainer.querySelector('.skill-progress');
+                setTimeout(() => {
+                    progressBar.style.width = `${skill.score}%`;
+                }, (index + 1) * 200);
+            });
+        }
+
+        function setLoading(loading) {
+            if (loading) {
+                analyzeBtn.disabled = true;
+                analyzeBtn.classList.add('loading');
+            } else {
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('loading');
+            }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hide results initially
+            resultsSection.style.display = 'none';
+            
+            // Show results section but keep it hidden with opacity
+            setTimeout(() => {
+                resultsSection.style.display = 'grid';
+            }, 100);
+        });
+    </script>
+</body>
+</html>

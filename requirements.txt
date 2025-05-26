@@ -1,0 +1,12 @@
+#libraries need to be installed
+streamlit
+streamlit_extras
+google-generativeai
+python-dotenv
+PyPDF2
+Pillow
+Flask
+Flask-CORS
+PyPDF2
+nltk
+Werkzeug
