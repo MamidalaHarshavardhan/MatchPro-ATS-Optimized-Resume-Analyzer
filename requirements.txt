@@ -10,3 +10,4 @@ Flask-CORS
 PyPDF2
 nltk
 Werkzeug
+gunicorn
